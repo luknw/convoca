@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import collections
 
+from scipy.stats import entropy
 from itertools import product
 
 def fixed_aspect_ratio(ratio):
@@ -168,7 +169,7 @@ def layer_entropy(arr):
     arr_flat = np.reshape(arr, (-1, num_feats))    
     pf = np.mean(arr_flat, axis=0)
 
-    ent_vals = entropy(np.array([shannon_entropy([pf_val, 1-pf_val]) for pf_val in pf]), axis=1)
+    ent_vals = entropy(np.array([[pf_val, 1-pf_val] for pf_val in pf]), axis=1)
 
     return ent_vals
 
