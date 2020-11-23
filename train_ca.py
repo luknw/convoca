@@ -46,7 +46,7 @@ class Wraparound2D(tf.keras.layers.Layer):
     def call(self, inputs):
         return periodic_padding(inputs, self.padding)
     
-def initialize_model(shape, layer_dims, nhood=1, num_classes=2, totalistic=False, 
+def initialize_model(shape, layer_dims, nhood=1, totalistic=False, 
                       nhood_type="moore", bc="periodic"):
     """
     Given a domain size and layer specification, initialize a model that assigns
@@ -80,15 +80,18 @@ def initialize_model(shape, layer_dims, nhood=1, num_classes=2, totalistic=False
                                          activation='relu', kernel_initializer=tf.keras.initializers.he_normal(), 
                                          bias_initializer=tf.keras.initializers.he_normal()))
         model.add(tf.keras.layers.Reshape(target_shape=(-1, layer_dims[0])))
-    
+
     for i in range(1, len(layer_dims)):
         model.add(tf.keras.layers.Dense(layer_dims[i],  activation='relu',
                                         kernel_initializer=tf.keras.initializers.he_normal(), 
                                         bias_initializer=tf.keras.initializers.he_normal()))
-    model.add(tf.keras.layers.Dense(num_classes,  activation='relu',
-                                    kernel_initializer=tf.keras.initializers.he_normal(), 
-                                    bias_initializer=tf.keras.initializers.he_normal()))
-    #model.add(tf.keras.layers.Reshape(target_shape=(-1, wspan, hspan)))
+        
+#     model.add(tf.keras.layers.Dense(num_classes,  activation='relu',
+#                                     kernel_initializer=tf.keras.initializers.he_normal(), 
+#                                     bias_initializer=tf.keras.initializers.he_normal()))
+
+    model.add(tf.keras.layers.Lambda(lambda x: tf.reduce_sum(x, axis=-1)))
+    model.add(tf.keras.layers.Reshape(target_shape=(wspan, hspan)))
     return model
 
 

@@ -4,6 +4,7 @@ import tensorflow as tf
 import collections
 
 from itertools import product
+from scipy.stats import entropy
 
 from utils import *
 
@@ -86,15 +87,13 @@ def get_network_entropies(feature_map):
         flat_out = (np.reshape(layer, (-1,layer.shape[-1]))).astype(int)
         all_patterns.append(flat_out)
         vals, counts = np.unique(flat_out, axis=0, return_counts=True)
-        counts = counts/np.sum(counts)
-        all_layer_ents.append(shannon_entropy(counts))
+        all_layer_ents.append(entropy(counts))
 
     layer_ent = all_layer_ents
 
     whole_pattern = np.hstack(all_patterns)
     vals, counts = np.unique(whole_pattern, axis=0, return_counts=True)
-    counts = counts/np.sum(counts)
-    whole_ent = shannon_entropy(counts)
+    whole_ent = entropy(counts)
 
     out = (whole_ent, layer_ent, neuron_ent)  
     return out
