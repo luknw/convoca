@@ -61,15 +61,18 @@ def initialize_model(shape, layer_dims, nhood=1, totalistic=False,
     if totalistic:
         model.append(('SymmetricConvolution', SymmetricConvolution(nhood, n_type=nhood_type, bc=bc)))
     else:
-        model.append(
-            ('Conv2d_0', torch.nn.Conv2d(in_channels=1, out_channels=layer_dims[0], kernel_size=(diameter, diameter))))
+        model.append(('Conv2d_0', torch.nn.Conv2d(in_channels=1, out_channels=layer_dims[0],
+                                                  kernel_size=(diameter, diameter))))
+    model.append(("ReLU_0", torch.nn.ReLU()))
 
     for i in range(1, len(layer_dims)):
         model.append((f'Conv2d_{i}', torch.nn.Conv2d(in_channels=layer_dims[i - 1],
                                                      out_channels=layer_dims[i], kernel_size=(1, 1))))
+        model.append((f"ReLU_{i}", torch.nn.ReLU()))
 
     model.append((f'Conv2d_{len(layer_dims)}', torch.nn.Conv2d(in_channels=layer_dims[len(layer_dims) - 1],
                                                                out_channels=1, kernel_size=(1, 1))))
+    #model.append((f"ReLU_{len(layer_dims)}", torch.nn.ReLU()))
 
     model.append(('Lambda_0', Lambda(lambda x: torch.squeeze(x, dim=1))))
     return torch.nn.Sequential(OrderedDict(model))
