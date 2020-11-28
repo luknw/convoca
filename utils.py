@@ -169,7 +169,7 @@ def layer_entropy(arr):
     arr_flat = np.reshape(arr, (-1, num_feats))    
     pf = np.mean(arr_flat, axis=0)
 
-    ent_vals = entropy(np.array([[pf_val, 1-pf_val] for pf_val in pf]), axis=1)
+    ent_vals = entropy(np.array([[pf_val, 1-pf_val] for pf_val in pf]), axis=1, base=2)
 
     return ent_vals
 

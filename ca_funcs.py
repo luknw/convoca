@@ -87,13 +87,13 @@ def get_network_entropies(feature_map):
         flat_out = (np.reshape(layer, (-1,layer.shape[-1]))).astype(int)
         all_patterns.append(flat_out)
         vals, counts = np.unique(flat_out, axis=0, return_counts=True)
-        all_layer_ents.append(entropy(counts))
+        all_layer_ents.append(entropy(counts, base=2))
 
     layer_ent = all_layer_ents
 
     whole_pattern = np.hstack(all_patterns)
     vals, counts = np.unique(whole_pattern, axis=0, return_counts=True)
-    whole_ent = entropy(counts)
+    whole_ent = entropy(counts, base=2)
 
     out = (whole_ent, layer_ent, neuron_ent)  
     return out
