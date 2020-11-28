@@ -129,7 +129,7 @@ def periodic_padding(image, padding=1):
 
 
 def conv_cast(arr):
-    return torch.from_numpy(arr).type(torch.DoubleTensor)
+    return torch.from_numpy(arr).float()
 
 
 def arr2tf(arr):
@@ -141,7 +141,7 @@ def arr2tf(arr):
     """
 
     arr_tf = torch.from_numpy(arr)
-    return arr_tf.type(torch.DoubleTensor)
+    return arr_tf.type.float()
 
 
 def categorize_images(image_stack, neighborhood="von neumann"):
@@ -163,9 +163,9 @@ def categorize_images(image_stack, neighborhood="von neumann"):
 
     if neighborhood == "von neumann":
         pad_size = 1
-        all_filters = np.transpose(all_combinations(2, d=9), (2, 1, 0))
-        all_biases = 1 - np.sum(all_filters, axis=(0, 1))
-        all_filters[all_filters == 0] -= np.prod(all_filters.shape[:2])
+        all_filters = all_combinations(2, d=9)
+        all_biases = 1 - np.sum(all_filters, axis=(1, 2))
+        all_filters[all_filters == 0] -= np.prod(all_filters.shape[1:])
     else:
         raise Exception("Specified neighborhood type not implemented")
 
@@ -260,7 +260,7 @@ def make_ca(words, symbols, neighborhood="von neumann"):
         pad_size = 1
         all_filters = all_combinations(2, d=9)
         all_biases = 1 - np.sum(all_filters, axis=(1, 2))
-        all_filters[all_filters == 0] -= np.prod(all_filters.shape[:2])
+        all_filters[all_filters == 0] -= np.prod(all_filters.shape[1:])
     else:
         assert True, "Specified neighborhood type not implemented"
 
@@ -275,9 +275,9 @@ def make_ca(words, symbols, neighborhood="von neumann"):
         """
         input_padded = torch.unsqueeze(periodic_padding(image_stack, pad_size), dim=1)
 
-        i = input_padded.double()
-        k = kernel.double()
-        b = biases.double()
+        i = input_padded.float()
+        k = kernel.float()
+        b = biases.float()
 
         conv_image = torch.nn.functional.conv2d(i, k, b)
 
