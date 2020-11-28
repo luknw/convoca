@@ -77,9 +77,8 @@ def initialize_model(shape, layer_dims, nhood=1, totalistic=False,
         model.append((f'Conv2d_{i}', conv_layer))
         model.append((f"ReLU_{i}", torch.nn.ReLU()))
 
-    conv_layer = torch.nn.Conv2d(in_channels=layer_dims[len(layer_dims) - 1], out_channels=1, kernel_size=(1, 1))
+    conv_layer = torch.nn.Conv2d(in_channels=layer_dims[len(layer_dims) - 1], out_channels=1, kernel_size=(1, 1), bias=False)
     torch.nn.init.kaiming_normal_(conv_layer.weight, nonlinearity='relu')
-    torch.nn.init.kaiming_normal_(torch.unsqueeze(conv_layer.bias, dim=0), nonlinearity='relu')
     model.append((f'Conv2d_{len(layer_dims)}', conv_layer))
 
     model.append(('Lambda_0', Lambda(lambda x: torch.squeeze(x, dim=1))))
