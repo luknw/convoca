@@ -6,7 +6,7 @@ setup(
     description='Train convolutional neural networks to represent cellular automata',
     author='William Gilpin',
     author_email='firstnamelastname(as one word)@googleemailservice',
-    requires=[ 'numpy', 'matplotlib', 'tensorflow'],
+    requires=[ 'numpy', 'matplotlib', 'tensorflow', 'pytorch', 'torchvision', 'torchaudio', 'cudatoolkit'],
     py_modules=['config'],
     package_data={
     'ca_funcs': ['*'],
