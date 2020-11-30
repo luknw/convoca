@@ -1,8 +1,10 @@
-from itertools import product
+from itertools import product, count
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import entropy
+import time
+from IPython.display import clear_output
 
 
 def fixed_aspect_ratio(ratio):
@@ -201,3 +203,51 @@ def find_dead(arr, axis=-1):
             where_dead.append(ax_ind)
 
     return where_dead
+
+def plot_state(state):
+    clear_output(wait=True)
+    plt.imshow(state)
+    plt.axis(False)
+    plt.show()
+
+def run_ca(ca, size=(100, 100), p_alive=0.5, iters=None):
+    iters = range(iters) if iters else count()
+    
+    state = np.random.choice([0, 1], size=size, p=[1-p_alive, p_alive])
+    m, n = state.shape
+    state[m//2, n//2] = 1 if p_alive > 0 else 0 # ensure at least 1 living cell
+    plot_state(state)
+    for _ in iters:
+        time.sleep(0.1)
+        state = ca(state)
+        plot_state(state) 
+        
+# adapted from: https://github.com/thearn/game-of-life
+from numpy.fft import fft2, ifft2
+
+def fft_convolve2d(x, y):
+    """
+    2D convolution, using FFT
+    """
+    fr = fft2(x)
+    fr2 = fft2(np.flipud(np.fliplr(y)))
+    m, n = fr.shape
+    cc = np.real(ifft2(fr*fr2))
+    cc = np.roll(cc, - int(m / 2) + 1, axis=0)
+    cc = np.roll(cc, - int(n / 2) + 1, axis=1)
+    return cc.round()
+
+def n_sum_ca(born, survives):
+    def ca(state):
+        kernel = np.zeros_like(state)
+        m, n = kernel.shape
+        kernel[m//2-1 : m//2+2, n//2-1 : n//2+2] = np.pad([[0]], 1, constant_values=1)
+
+        neighbours_alive = fft_convolve2d(state, kernel)
+
+        new_state = np.zeros_like(neighbours_alive)
+        new_state[np.where((state == 0) & np.isin(neighbours_alive, born))] = 1
+        new_state[np.where((state == 1) & np.isin(neighbours_alive, survives))] = 1
+
+        return new_state
+    return ca
