@@ -106,21 +106,14 @@ def bin2int(arr, axis=0):
     return np.sum(arr * pow2, axis=axis).astype(int)
 
 
-def all_combinations(m, d=9):
+def all_combinations(m, shape):
     """
-    Make an array of all d dimensional inputs
-    consisting of m possible values
+    Make an array of all `shape` dimensional inputs
+    consisting of `m` possible values
     """
-
-    sq = int(np.sqrt(d))
-
-    indices = np.tile(np.array([np.arange(m)]).T, d)
-
+    indices = np.tile(np.array([np.arange(m)]).T, np.product(shape))
     all_combos = list(product(*list(indices.T)))
-    out = np.reshape(np.array(all_combos), (-1, sq, sq))
-
-    return out
-
+    return np.reshape(np.array(all_combos), (-1, *shape))
 
 def relu(arr0):
     arr = np.copy(arr0)
@@ -177,7 +170,7 @@ def layer_entropy(arr):
     arr_flat = np.reshape(arr, (-1, num_feats))
     pf = np.mean(arr_flat, axis=0)
 
-    ent_vals = entropy(np.array([[pf_val, 1 - pf_val] for pf_val in pf]), axis=1)
+    ent_vals = entropy(np.array([[pf_val, 1 - pf_val] for pf_val in pf]), axis=1, base=2)
 
     return ent_vals
 

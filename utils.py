@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import collections
 
-from scipy.stats import entropy
 from itertools import product
+from scipy.stats import entropy
 
 def fixed_aspect_ratio(ratio):
     '''
@@ -100,21 +100,14 @@ def bin2int(arr, axis=0):
     pow2 = 2**np.arange(arr.shape[axis], dtype=np.uint64)
     return np.sum(arr*pow2, axis=axis).astype(int)
 
-def all_combinations(m,d=9):
+def all_combinations(m, shape):
     '''
-    Make an array of all d dimensional inputs
+    Make an array of all shape dimensional inputs
     consisting of m possible values
-    '''
-    
-    sq = int(np.sqrt(d))
-    
-    indices = np.tile(np.array([np.arange(m)]).T,d)
-
+    '''    
+    indices = np.tile(np.array([np.arange(m)]).T, np.product(shape))
     all_combos = list(product(*list(indices.T)))
-    out = np.reshape(np.array(all_combos),(-1, sq, sq))
-    
-    return out
-   
+    return np.reshape(np.array(all_combos), (-1, *shape))   
 
 def relu(arr0):
     arr = np.copy(arr0)

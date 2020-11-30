@@ -179,7 +179,7 @@ def categorize_images(image_stack, neighborhood="von neumann"):
     
     if neighborhood=="von neumann":
         pad_size = 1
-        all_filters = np.transpose(all_combinations(2,d=9), (2,1,0))
+        all_filters = np.transpose(all_combinations(2, (3, 3)), (2,1,0))
         all_biases = 1-np.sum(all_filters,axis=(0,1))
         all_filters[all_filters==0] -= np.prod(all_filters.shape[:2])
     else:
@@ -234,7 +234,7 @@ def image_entropy(im_stack, neighborhood="von neumann"):
         # dict(zip(unique_keys, counts)) # make histogram dict
 
         counts /= np.sum(counts)    # normalize
-        ent = shannon_entropy(counts)
+        ent = entropy(counts, base=2)
 
         all_ents[ind] = ent
         
@@ -280,7 +280,7 @@ def make_ca(words, symbols, neighborhood="von neumann"):
     
     if neighborhood=="von neumann":
         pad_size = 1
-        all_filters = np.transpose(all_combinations(2,d=9), (2,1,0))
+        all_filters = np.transpose(all_combinations(2, (3, 3)), (2,1,0))
         all_biases = 1-np.sum(all_filters,axis=(0,1))
         all_filters[all_filters==0] -= np.prod(all_filters.shape[:2])
     else:
