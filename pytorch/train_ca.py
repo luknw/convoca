@@ -59,23 +59,35 @@ def initialize_model(shape, layer_dims, nhood=1, totalistic=False,
         model.append(('Wraparound2D', Wraparound2D(padding=nhood)))
 
     if totalistic:
-        model.append(('SymmetricConvolution', SymmetricConvolution(nhood, n_type=nhood_type, bc=bc)))
+        conv_layer = SymmetricConvolution(nhood, n_type=nhood_type, bc=bc)
+        torch.nn.init.kaiming_normal_(conv_layer.weight, nonlinearity='relu')
+        torch.nn.init.kaiming_normal_(torch.unsqueeze(conv_layer.bias, dim=0), nonlinearity='relu')
+        model.append(('SymmetricConvolution', conv_layer))
     else:
-        model.append(('Conv2d_0', torch.nn.Conv2d(in_channels=1, out_channels=layer_dims[0], kernel_size=(diameter, diameter))))
-        model.append(('ReLU_0', torch.nn.ReLU()))
-        model.append(('Lambda_0', Lambda(lambda x: torch.transpose(torch.transpose(x, 1, 2), 2, 3))))
+        conv_layer = torch.nn.Conv2d(in_channels=1, out_channels=layer_dims[0], kernel_size=(diameter, diameter))
+        torch.nn.init.kaiming_normal_(conv_layer.weight, nonlinearity='relu')
+        torch.nn.init.kaiming_normal_(torch.unsqueeze(conv_layer.bias, dim=0), nonlinearity='relu')
+        model.append(('Conv2d_0', conv_layer))
+    model.append(("ReLU_0", torch.nn.ReLU()))
 
     for i in range(1, len(layer_dims)):
-        model.append((f'Dense_{i}', torch.nn.Linear(layer_dims[i], layer_dims[i])))
-        model.append((f'ReLU_{i}', torch.nn.ReLU()))
+        conv_layer = torch.nn.Conv2d(in_channels=layer_dims[i - 1], out_channels=layer_dims[i], kernel_size=(1, 1))
+        torch.nn.init.kaiming_normal_(conv_layer.weight, nonlinearity='relu')
+        torch.nn.init.kaiming_normal_(torch.unsqueeze(conv_layer.bias, dim=0), nonlinearity='relu')
+        model.append((f'Conv2d_{i}', conv_layer))
+        model.append((f"ReLU_{i}", torch.nn.ReLU()))
 
-    model.append(('Lambda_1', Lambda(lambda x: torch.sum(x, dim=-1))))
+    conv_layer = torch.nn.Conv2d(in_channels=layer_dims[len(layer_dims) - 1], out_channels=1, kernel_size=(1, 1), bias=False)
+    torch.nn.init.kaiming_normal_(conv_layer.weight, nonlinearity='relu')
+    model.append((f'Conv2d_{len(layer_dims)}', conv_layer))
+
+    model.append(('Lambda_0', Lambda(lambda x: torch.squeeze(x, dim=1))))
     return torch.nn.Sequential(OrderedDict(model))
 
 
 def logit_to_pred(logits, shape=None):
     """
-    Given logits in the form of a network output, convert them to 
+    Given logits in the form of a network output, convert them to
     images
     """
 
@@ -89,7 +101,7 @@ def augment_data(x, y, n=None):
     """
     Generate an augmented training dataset with random reflections
     and 90 degree rotations
-    x, y : Image sets of shape (Samples, Width, Height, Channels) 
+    x, y : Image sets of shape (Samples, Width, Height, Channels)
         training images and next images
     n : number of training examples
     """
@@ -142,9 +154,9 @@ def make_circular_filters(rad):
     m = 2 * rad + 1
 
     qq = torch.range(start=0, end=m) - int((m - 1) / 2)
-    pp = torch.sqrt((qq[..., None] ** 2 + qq[None, ...] ** 2).type('pytorch.float32'))
+    pp = torch.sqrt((qq[..., None] ** 2 + qq[None, ...] ** 2).type('torch.float32'))
 
-    val_range = (torch.range(start=0, end=((m + 1) / 2)).type('pytorch.float32'))
+    val_range = (torch.range(start=0, end=((m + 1) / 2)).type('torch.float32'))
     circ_filters = make_square_filters(rad) * val_range[..., None, None, None]
     rr = circ_filters * (1 / pp)[None, ..., None]
     rr = torch.where(torch.isnan(rr), torch.zeros_like(rr), rr)
@@ -153,13 +165,13 @@ def make_circular_filters(rad):
 
 class SymmetricConvolution(torch.nn.Module):
     """
-    A non-trainable convolutional layer that extracts the 
+    A non-trainable convolutional layer that extracts the
     summed values in the neighborhood of each pixel. No activation
     is applied because this feature extractor does not change during training
     parametrized by the radius
     r : int, the max neighborhood size
     nhood_type : "moore" (default) uses the Moore neighborhood, while "neumann"
-        uses the generalized von Neumann neighborhood, which is similar 
+        uses the generalized von Neumann neighborhood, which is similar
         to a circle at large neighborhood radii
     bc : "periodic" or "constant"
     TODO : implement the "hard" von Neumann neighborhood
@@ -190,4 +202,5 @@ class Lambda(torch.nn.Module):
         super().__init__()
         self.func = func
 
-    def forward(self, x): return self.func(x)
+    def forward(self, x):
+        return self.func(x)

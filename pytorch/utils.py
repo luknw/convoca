@@ -89,7 +89,7 @@ def tup2str(tup, delim=''):
 
 def get_slope(vec):
     m, b = np.polyfit(np.arange(0, len(vec)), vec, 1)
-    return (m, b)
+    return m, b
 
 
 def bin2int(arr, axis=0):
