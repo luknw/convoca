@@ -3,6 +3,7 @@ import torch
 from lab_pytorch.utils import *
 from scipy.stats import entropy
 from collections import Counter
+from functools import wraps
 
 
 def make_table_walk(nbins, known_rule=''):
@@ -354,15 +355,49 @@ def make_glider(dims0):
 
     return out_arr
 
-
-from functools import wraps
-
-def batching(ca, state_dims=2):
-    """Functor for applying ca over batches of states"""
-    @wraps(ca)
-    def batching_ca(states, ):
+def make_ca(state_transition, state_dims=2):
+    """
+    Applies ca over batches of states,
+    so that it's compatible with the rest of the APIs.
+    """
+    @wraps(state_transition)
+    def batching_ca(states):
         new_states = []
         for state in states.reshape(-1, *states.shape[-state_dims:]):
-            new_states.append(ca(state))
+            new_states.append(state_transition(state))
         return np.array(new_states).reshape(states.shape)
     return batching_ca
+
+def n_sum_ca(born, survives):
+    @make_ca
+    def ca(state):
+        kernel = np.zeros_like(state)
+        m, n = kernel.shape
+        kernel[m//2-1 : m//2+2, n//2-1 : n//2+2] = np.pad([[0]], 1, constant_values=1)
+
+        neighbours_alive = fft_convolve2d(state, kernel)
+
+        new_state = np.zeros_like(neighbours_alive)
+        new_state[np.where((state == 0) & np.isin(neighbours_alive, born))] = 1
+        new_state[np.where((state == 1) & np.isin(neighbours_alive, survives))] = 1
+
+        return new_state
+    return ca
+
+def plot_state(state):
+    clear_output(wait=True)
+    plt.imshow(state, vmin=0, vmax=1)
+    plt.axis(False)
+    plt.show()
+
+def run_ca(ca, size=(100, 100), p_alive=0.5, iters=None):
+    iters = range(iters) if iters else count()
+    
+    state = np.random.choice([0, 1], size=size, p=[1-p_alive, p_alive])
+    m, n = state.shape
+    state[m//2, n//2] = 1 if p_alive > 0 else 0 # ensure at least 1 living cell
+    plot_state(state)
+    for _ in iters:
+        time.sleep(0.1)
+        state = ca(state)
+        plot_state(state) 
