@@ -153,28 +153,6 @@ def shannon_entropy(pi_set0):
 
     return out
 
-
-def layer_entropy(arr):
-    """
-    Find entropy an array assuming that the last
-    axis are binary features, and the earlier axes
-    index samples
-
-    Interpretation: Finds the average firing rate of
-    each neuron across all training examples.
-    Assumes on/off firing rate
-
-    """
-
-    num_feats = arr.shape[-1]
-    arr_flat = np.reshape(arr, (-1, num_feats))
-    pf = np.mean(arr_flat, axis=0)
-
-    ent_vals = entropy(np.array([[pf_val, 1 - pf_val] for pf_val in pf]), axis=1, base=2)
-
-    return ent_vals
-
-
 def find_dead(arr, axis=-1):
     """
     Given an array, count the number of axes where

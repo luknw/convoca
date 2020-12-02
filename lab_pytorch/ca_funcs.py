@@ -1,7 +1,8 @@
 import torch
 
-from utils import *
+from lab_pytorch.utils import *
 from scipy.stats import entropy
+from collections import Counter
 
 
 def make_table_walk(nbins, known_rule=''):
@@ -55,42 +56,24 @@ def make_table_walk(nbins, known_rule=''):
     return all_rules
 
 
-def get_network_entropies(feature_map):
-    """
-    Given a list of directories containing fully-trained models, find the
-    entropy of single-neuron firings, layer firings, and layer group firings
-    in order to assess independence
-
-    feature_map : list of lists
-        A list of firing patterns
-        (layer index, )
-
-    DEV: collections.Counter is actually faster than using the np.unique
-    function, could try setting a global flag for Counter when the script is
-    first loaded, and then use it if it is available?
-
-    """
-
-    neuron_ent = [layer_entropy(thing) for thing in feature_map]
-
-    all_layer_ents = list()
-    all_patterns = list()
-
-    for layer in feature_map:
-        flat_out = (np.reshape(layer, (-1, layer.shape[-1]))).astype(int)
-        all_patterns.append(flat_out)
-        vals, counts = np.unique(flat_out, axis=0, return_counts=True)
-        all_layer_ents.append(entropy(counts, base=2))
-
-    layer_ent = all_layer_ents
-
-    whole_pattern = np.hstack(all_patterns)
-    vals, counts = np.unique(whole_pattern, axis=0, return_counts=True)
-    whole_ent = entropy(counts, base=2)
-
-    out = (whole_ent, layer_ent, neuron_ent)
-    return out
-
+def get_network_entropies(layers_samples_neurons):
+    neuron_entropies_by_layer = []
+    layer_entropies = []
+    
+    for l in layers_samples_neurons:
+        p_neuron = l.mean(axis=0)
+        neuron_entropies_by_layer.append(entropy([p_neuron, 1-p_neuron], base=2))
+        
+        layer_patterns = (tuple(sample) for sample in l)
+        layer_pattern_counts = list(Counter(layer_patterns).values())
+        layer_entropies.append(entropy(layer_pattern_counts, base=2))
+        
+    network_patterns = (tuple(sample.ravel()) for sample in layers_samples_neurons.swapaxes(0, 1))
+    network_pattern_counts = list(Counter(network_patterns).values())
+    network_entropy = entropy(network_pattern_counts, base=2)
+    
+    return network_entropy, layer_entropies, neuron_entropies_by_layer
+    
 
 def periodic_padding(image, padding=1):
     """
@@ -370,3 +353,16 @@ def make_glider(dims0):
     out_arr[ins_inds[0] - 1:ins_inds[0] + 2, ins_inds[1] - 1:ins_inds[1] + 2] = glider_center
 
     return out_arr
+
+
+from functools import wraps
+
+def batching(ca, state_dims=2):
+    """Functor for applying ca over batches of states"""
+    @wraps(ca)
+    def batching_ca(states, ):
+        new_states = []
+        for state in states.reshape(-1, *states.shape[-state_dims:]):
+            new_states.append(ca(state))
+        return np.array(new_states).reshape(states.shape)
+    return batching_ca
