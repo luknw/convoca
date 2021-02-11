@@ -74,7 +74,6 @@ def get_network_entropies(layers_samples_neurons):
     network_entropy = entropy(network_pattern_counts, base=2)
     
     return network_entropy, layer_entropies, neuron_entropies_by_layer
-    
 
 def periodic_padding(image, padding=1):
     """

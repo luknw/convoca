@@ -138,21 +138,6 @@ def normalize_hist(hist_dict0):
 
     return hist_dict
 
-
-def shannon_entropy(pi_set0):
-    """
-    Given a set of probabilities, compute the Shannon
-    entropy, dropping any zeros
-    """
-    pi_set = np.array(pi_set0)
-    pi_set_nonzero = np.copy(pi_set[pi_set > 0])
-
-    hi = pi_set_nonzero.dot(np.log2(pi_set_nonzero))
-
-    out = -np.sum(hi)
-
-    return out
-
 def find_dead(arr, axis=-1):
     """
     Given an array, count the number of axes where
