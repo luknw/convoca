@@ -6,7 +6,7 @@ from collections import Counter
 from functools import wraps
 
 
-def make_table_walk(nbins, known_rule=''):
+def make_table_walk(nbins, known_rule='', rng=None):
     """
     Walk across a table of CA rules, changing one
     index at a time. When a specific rules is given, incorporate it into the walk
@@ -26,7 +26,7 @@ def make_table_walk(nbins, known_rule=''):
     simpler
     """
 
-    selection_order = np.random.choice(range(nbins), nbins, replace=False)
+    selection_order = rng.permutation(nbins)
 
     all_rules = np.zeros((nbins, nbins))
 
@@ -44,12 +44,12 @@ def make_table_walk(nbins, known_rule=''):
         assert num_on == len(where_on)
         assert num_off == len(where_off)
 
-        selection_order_indices = np.random.choice(range(num_on), num_on, replace=False)
+        selection_order_indices = rng.permutation(num_on)
         selection_order = where_on[selection_order_indices]
         for ind in range(len(selection_order)):
             all_rules[ind:, selection_order[ind]] = 1
 
-        selection_order_indices = np.random.choice(range(num_off), num_off, replace=False)
+        selection_order_indices = rng.permutation(num_off)
         selection_order = where_off[selection_order_indices]
         for ind in range(len(selection_order)):
             all_rules[num_on + ind:, selection_order[ind]] = 1
