@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch
 
 from collections import Counter
 from copy import deepcopy
+from itertools import product
 from scipy.stats import entropy
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 from ca_funcs import get_network_entropies, make_ca, make_glider, make_table_walk
 from train_ca import initialize_model
@@ -44,7 +46,7 @@ def ca_entropy(ca):
     return entropy(output_ps, base=2)
 
 
-def train(ca, layer_dims=None, rng=None, train_noise=0.0):
+def train(training_epochs, ca, layer_dims=None, rng=None, train_noise=0.0):
     layer_dims = layer_dims or [100] + [100] * 11  # neighborhood conv + mlpconv layers
     rng = rng or np.random.default_rng(0)
 
@@ -54,7 +56,6 @@ def train(ca, layer_dims=None, rng=None, train_noise=0.0):
 
     loss = torch.nn.MSELoss()
 
-    training_epochs = 100
     samples = 500
     batch_size = 10
     num_batches = samples // batch_size
@@ -65,7 +66,7 @@ def train(ca, layer_dims=None, rng=None, train_noise=0.0):
 
         model = initialize_model(input_dims, layer_dims)
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-        display(model)
+#         display(model)
 
         if torch.cuda.is_available():
             model.cuda()
@@ -79,7 +80,7 @@ def train(ca, layer_dims=None, rng=None, train_noise=0.0):
             X_train = X_train.cuda()
             Y_train = Y_train.cuda()
 
-        for _ in tqdm(range(training_epochs)):
+        for _ in tqdm(range(training_epochs), leave=False):
             batch_losses = []
             for i in range(num_batches):
                 X_batch = X_train[i * batch_size : (i + 1) * batch_size]
@@ -242,3 +243,44 @@ def model_lmc(model, layer_dims):
     binary_activations = binary_activations.transpose(0, 1, -2, -1, 2) \
         .reshape(len(layer_dims), np.product(X_test.shape), layer_dims[0])
     return get_network_lmcs(binary_activations)
+
+
+def model_stats(ca_id, seed, train_noise, ca, model, layer_dims, losses):
+    model_entropy, layer_entropies, neuron_entropies = calculate_entropies(model, layer_dims)
+    neuron_entropies = np.array(neuron_entropies).mean(axis=-1)
+    
+    model_lmc_, layer_lmcs, neuron_lmcs = model_lmc(model, layer_dims)
+    neuron_lmcs = np.array(neuron_lmcs).mean(axis=-1)
+    
+    return [
+        (ca_id, seed, train_noise, 'ca_entropy', np.nan, ca_entropy(ca)),
+        (ca_id, seed, train_noise, 'ca_lmc', np.nan, ca_lmc(ca)),
+        (ca_id, seed, train_noise, 'model_entropy', np.nan, model_entropy),
+        *((ca_id, seed, train_noise, 'layer_entropy', i, e) for i, e in enumerate(layer_entropies)),
+        *((ca_id, seed, train_noise, 'neuron_entropy', i, e) for i, e in enumerate(neuron_entropies)),
+        (ca_id, seed, train_noise, 'model_lmc', np.nan, model_lmc_),
+        *((ca_id, seed, train_noise, 'layer_lmc', i, lmc) for i, lmc in enumerate(layer_lmcs)),
+        *((ca_id, seed, train_noise, 'neuron_lmc', i, lmc) for i, lmc in enumerate(neuron_lmcs)),
+        (ca_id, seed, train_noise, 'losses', np.nan, losses),
+    ]
+
+
+def collect_stats(ixs, noises, seed, training_epochs):
+    layer_dims = [100] + [100] * 11  # neighborhood conv + mlpconv layers
+    
+    rng = np.random.default_rng(seed)
+    
+    cas = np.array(list(sample_CAs(rng=rng)))[ixs]
+    for (i, ca), n in tqdm(list(product(zip(ixs, cas), noises))):
+        model, optimizer, losses = train(
+            training_epochs,
+            ca,
+            layer_dims,
+            rng,
+            train_noise=n
+        )
+
+        stats = model_stats(i, seed, n, ca, model, layer_dims, losses)
+        stats = pd.DataFrame(stats, columns=['ca_id', 'seed', 'noise', 'type', 'layer', 'value'])
+        stats.to_csv(f'stats/stats_{i}_{seed}_{n}.csv')
+
